@@ -8,7 +8,7 @@ class PLOT:
         return
 
     def plot_confusion_matrix(self, cm, title='Confusion matrix',
-                              xticks=None, yticks=None,
+                              xticks=None, yticks=None, fname='./cm.png',
                               cmap=plt.cm.Blues, norm=True):
         if norm:
             cm = cm.astype('float') / cm.sum(axis=1)[:, np.newaxis]
@@ -26,10 +26,5 @@ class PLOT:
         plt.tight_layout()
         plt.ylabel('True label')
         plt.xlabel('Predicted label')
-        plt.show()
+        plt.savefig(fname)
 
-p = PLOT()
-cm = np.array([[0.8, 0.0, 0.2],
-              [0.1, 0.8, 0.1],
-              [0.0, 0.9, 0.1]])
-p.plot_confusion_matrix(cm)

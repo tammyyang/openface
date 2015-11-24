@@ -44,7 +44,7 @@ from sklearn.grid_search import GridSearchCV
 from sklearn.manifold import TSNE
 from sklearn.svm import SVC
 
-from core import tools
+from tools import plot
 
 modelDir = os.path.join(fileDir, '..', 'models')
 dlibModelDir = os.path.join(modelDir, 'dlib')
@@ -103,15 +103,10 @@ def train(args):
 def predict(le, svm, imgpath):
     try:
         rep = getRep(imgpath)
-        predictions = svm.predict_proba(rep)[0]
-        print predictions
-        maxI = np.argmax(predictions)
-        person = le.inverse_transform(maxI)
-        confidence = predictions[maxI]
-        return person, confidence
+        return svm.predict_proba(rep)[0]
     except:
         print("Cannot predict %s successfully" %imgpath)
-        return None, None
+        return None
 
 def check_ext(file_name, extensions):
     if file_name.endswith(extensions):
@@ -134,34 +129,44 @@ def check_path(path):
         return find_images(path)
 
 def find_person_from_path(path):
-    return os.path.basename(os.path.dirname(path))
+    person = os.path.basename(os.path.dirname(path))
+    return int(person.replace('person-', ''))
 
-def print_output(output):
-    for p in output:
-        if output[p][0] == 0:
+def print_output(output, accu):
+    cm = []
+    for p in sorted(output.keys()):
+        ma = np.array(output[p])
+        cm.append(ma.mean(0))
+        if accu[p][0] == 0:
             perc = 0
         else:
-            perc = float(output[p][1])/float(output[p][0])
-        print("%s is identified correctly with %.2f precision"
-               % (p, perc))
+            perc = float(accu[p][1])/float(accu[p][0])
+        print("person-%i can be identified with %.2f accuracy"
+              %(p, perc))
+    plot.PLOT().plot_confusion_matrix(np.array(cm))
 
 def infer(args):
     output = {}
+    accu = {}
     with open(args.classifierModel, 'r') as f:
         (le, svm) = pickle.load(f)
         for f in check_path(args.img):
             true_p = find_person_from_path(f)
             if true_p not in output:
-                output[true_p] = [0, 0]
-            output[true_p][0] += 1
-            person, confidence = predict(le, svm, f)
-            if person is not None:
-                print('%s is identified as %s with %.2f confidence.'
-                      % (true_p, person, confidence))
-                if person.find(true_p) > -1:
-                    output[true_p][1] += 1
-            break
-    print_output(output)
+                output[true_p] = []
+            if true_p not in accu:
+                accu[true_p] = [0, 0]
+            accu[true_p][0] += 1
+            predictions = predict(le, svm, f)
+            maxI = np.argmax(predictions)
+            person = le.inverse_transform(maxI)
+            person = int(person.replace('person-', ''))
+            if predictions is not None:
+                output[true_p].append(predictions)
+            if person == true_p:
+                accu[true_p][1] += 1
+            #break
+    print_output(output, accu)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
