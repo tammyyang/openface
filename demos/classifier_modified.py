@@ -44,7 +44,7 @@ from sklearn.grid_search import GridSearchCV
 from sklearn.manifold import TSNE
 from sklearn.svm import SVC
 
-from tools import plot
+from core import plot
 
 modelDir = os.path.join(fileDir, '..', 'models')
 dlibModelDir = os.path.join(modelDir, 'dlib')
@@ -105,13 +105,15 @@ def predict(le, svm, imgpath):
         rep = getRep(imgpath)
         return svm.predict_proba(rep)[0]
     except:
-        print("Cannot predict %s successfully" %imgpath)
+        print("Cannot predict %s successfully" % imgpath)
         return None
+
 
 def check_ext(file_name, extensions):
     if file_name.endswith(extensions):
         return True
     return False
+
 
 def find_images(dir_path):
     output = []
@@ -121,6 +123,7 @@ def find_images(dir_path):
                 output.append(os.path.join(dirPath, f))
     return output
 
+
 def check_path(path):
     if os.path.isfile(path):
         if check_ext(path, ('.jpg', 'png')):
@@ -128,22 +131,32 @@ def check_path(path):
     elif os.path.isdir(path):
         return find_images(path)
 
+
 def find_person_from_path(path):
     person = os.path.basename(os.path.dirname(path))
     return int(person.replace('person-', ''))
+
 
 def print_output(output, accu):
     cm = []
     for p in sorted(output.keys()):
         ma = np.array(output[p])
-        cm.append(ma.mean(0))
+        mean = ma.mean(0)
+        cm.append(mean)
         if accu[p][0] == 0:
             perc = 0
         else:
-            perc = float(accu[p][1])/float(accu[p][0])
-        print("person-%i can be identified with %.2f accuracy"
-              %(p, perc))
+            perc = float(accu[p][0] - accu[p][1])/float(accu[p][0])
+        print("============ person %i ============" % p)
+        print("Fail rate: %.2f" % perc)
+        if accu[p][1] == 0:
+            perc = 0
+        else:
+            perc = float(accu[p][2])/float(accu[p][1])
+        print("Identification rate: %.2f" % perc)
+        print mean
     plot.PLOT().plot_confusion_matrix(np.array(cm))
+
 
 def infer(args):
     output = {}
@@ -155,7 +168,7 @@ def infer(args):
             if true_p not in output:
                 output[true_p] = []
             if true_p not in accu:
-                accu[true_p] = [0, 0]
+                accu[true_p] = [0, 0, 0]
             accu[true_p][0] += 1
             predictions = predict(le, svm, f)
             maxI = np.argmax(predictions)
@@ -163,9 +176,9 @@ def infer(args):
             person = int(person.replace('person-', ''))
             if predictions is not None:
                 output[true_p].append(predictions)
-            if person == true_p:
                 accu[true_p][1] += 1
-            #break
+                if person == true_p:
+                    accu[true_p][2] += 1
     print_output(output, accu)
 
 if __name__ == '__main__':
