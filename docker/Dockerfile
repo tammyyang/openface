@@ -1,4 +1,4 @@
-FROM ubuntu:14.04
+FROM cudnn:latest
 MAINTAINER Brandon Amos <brandon.amos.cs@gmail.com>
 
 RUN apt-get update && apt-get install -y \
@@ -34,6 +34,9 @@ RUN ~/torch/install/bin/luarocks install dpnn
 RUN ~/torch/install/bin/luarocks install image
 RUN ~/torch/install/bin/luarocks install optim
 RUN ~/torch/install/bin/luarocks install csvigo
+RUN ~/torch/install/bin/luarocks install cutorch
+RUN ~/torch/install/bin/luarocks install cunn
+RUN ~/torch/install/bin/luarocks install cudnn
 
 RUN cd ~ && \
     mkdir -p src && \
